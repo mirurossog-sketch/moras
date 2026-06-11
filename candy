@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mini Candy Crush</title>
+
+<style>
+body{
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg,#ff8ec7,#8fd3ff);
+    text-align:center;
+    margin:0;
+    padding:20px;
+}
+
+h1{
+    color:white;
+}
+
+#score{
+    color:white;
+    font-size:24px;
+    margin-bottom:15px;
+}
+
+#board{
+    width:480px;
+    height:480px;
+    margin:auto;
+    display:grid;
+    grid-template-columns:repeat(8,60px);
+    grid-template-rows:repeat(8,60px);
+    gap:2px;
+}
+
+.candy{
+    width:60px;
+    height:60px;
+    border-radius:12px;
+    cursor:pointer;
+    border:2px solid rgba(255,255,255,0.3);
+    transition:0.2s;
+}
+
+.selected{
+    border:3px solid yellow;
+    transform:scale(1.05);
+}
+
+.red{background:#ff4d4d;}
+.blue{background:#4da6ff;}
+.green{background:#33cc66;}
+.yellow{background:#ffd633;}
+.purple{background:#b366ff;}
+.orange{background:#ff944d;}
+</style>
+</head>
+<body>
+
+<h1>Mini Candy Crush</h1>
+<div id="score">Puntos: 0</div>
+<div id="board"></div>
+
+<script>
+const board = document.getElementById("board");
+const scoreText = document.getElementById("score");
+
+const width = 8;
+let score = 0;
+
+const colors = [
+    "red",
+    "blue",
+    "green",
+    "yellow",
+    "purple",
+    "orange"
+];
+
+let grid = [];
+let firstSelected = null;
+
+function randomColor(){
+    return colors[Math.floor(Math.random()*colors.length)];
+}
+
+function createBoard(){
+    board.innerHTML = "";
+    grid = [];
+
+    for(let i=0;i<width*width;i++){
+        const candy = document.createElement("div");
+        candy.classList.add("candy");
+
+        const color = randomColor();
+        candy.classList.add(color);
+
+        candy.dataset.index = i;
+
+        candy.addEventListener("click", selectCandy);
+
+        board.appendChild(candy);
+        grid.push(candy);
+    }
+}
+
+function getColor(candy){
+    return colors.find(c=>candy.classList.contains(c));
+}
+
+function setColor(candy,color){
+    colors.forEach(c=>candy.classList.remove(c));
+    candy.classList.add(color);
+}
+
+function selectCandy(){
+    if(!firstSelected){
+        firstSelected = this;
+        this.classList.add("selected");
+        return;
+    }
+
+    if(firstSelected === this){
+        firstSelected.classList.remove("selected");
+        firstSelected = null;
+        return;
+    }
+
+    const idx1 = Number(firstSelected.dataset.index);
+    const idx2 = Number(this.dataset.index);
+
+    const neighbors = [
+        idx1-1,
+        idx1+1,
+        idx1-width,
+        idx1+width
+    ];
+
+    if(neighbors.includes(idx2)){
+        swapCandies(firstSelected,this);
+
+        if(!findMatches()){
+            swapCandies(firstSelected,this);
+        }
+    }
+
+    firstSelected.classList.remove("selected");
+    firstSelected = null;
+}
+
+function swapCandies(a,b){
+    const colorA = getColor(a);
+    const colorB = getColor(b);
+
+    setColor(a,colorB);
+    setColor(b,colorA);
+}
+
+function findMatches(){
+    let found = false;
+
+    // Horizontales
+    for(let row=0; row<width; row++){
+        for(let col=0; col<width-2; col++){
+
+            const i = row*width + col;
+
+            const c1 = getColor(grid[i]);
+            const c2 = getColor(grid[i+1]);
+            const c3 = getColor(grid[i+2]);
+
+            if(c1 && c1===c2 && c2===c3){
+                removeMatch([i,i+1,i+2]);
+                found = true;
+            }
+        }
+    }
+
+    // Verticales
+    for(let col=0; col<width; col++){
+        for(let row=0; row<width-2; row++){
+
+            const i = row*width + col;
+
+            const c1 = getColor(grid[i]);
+            const c2 = getColor(grid[i+width]);
+            const c3 = getColor(grid[i+width*2]);
+
+            if(c1 && c1===c2 && c2===c3){
+                removeMatch([
+                    i,
+                    i+width,
+                    i+width*2
+                ]);
+                found = true;
+            }
+        }
+    }
+
+    return found;
+}
+
+function removeMatch(indexes){
+    indexes.forEach(i=>{
+        setColor(grid[i], randomColor());
+    });
+
+    score += 10;
+    scoreText.textContent = "Puntos: " + score;
+}
+
+setInterval(()=>{
+    findMatches();
+},500);
+
+createBoard();
+</script>
+
+</body>
+</html>
